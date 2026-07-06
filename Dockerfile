@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 # ---- runner: minimal production image
-FROM node:22-bookworm AS runner
+FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -23,7 +23,9 @@ ENV NODE_ENV=production \
     PORT=3000 \
     DATA_DIR=/app/data
 
-RUN groupadd --system nodejs && useradd --system --gid nodejs nextjs \
+RUN apt-get update -qq && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system nodejs && useradd --system --gid nodejs nextjs \
     && mkdir -p /app/data && chown nextjs:nodejs /app/data
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
