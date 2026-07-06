@@ -111,13 +111,13 @@ export function ConfiguratorView({
   }
 
   function duplicate() {
-    track(“setup_duplicated”);
+    track("setup_duplicated");
     startTransition(() => duplicateSetup(setup.id));
   }
 
   function remove() {
-    if (!window.confirm(`Delete “${setup.name}” and its packing list?`)) return;
-    track(“setup_deleted”);
+    if (!window.confirm(`Delete "${setup.name}" and its packing list?`)) return;
+    track("setup_deleted");
     startTransition(() => deleteSetup(setup.id));
   }
 
