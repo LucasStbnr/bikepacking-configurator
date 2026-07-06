@@ -25,8 +25,14 @@ export function GearPanel({
     [products],
   );
 
+  // Only bags act as containers you pack gear into. Mounted accessories
+  // (GPS, lights, bottles…) are tracked on the diagram + totals but are not
+  // containers, so they get a compact read-only summary instead of a section.
+  const bagSections = bags.filter((b) => b.product.category === "bag");
+  const mountedAccessories = bags.filter((b) => b.product.category === "accessory");
+
   const sections: { bagId: number | null; title: string; subtitle?: string }[] = [
-    ...bags.map((b) => ({
+    ...bagSections.map((b) => ({
       bagId: b.id as number | null,
       title: b.product.name,
       subtitle: MOUNT_POINT_LABELS[b.mountPoint],
@@ -79,6 +85,37 @@ export function GearPanel({
           </section>
         );
       })}
+
+      {mountedAccessories.length > 0 ? (
+        <section className="rounded-lg border border-line bg-surface">
+          <header className="border-b border-line px-3 py-2">
+            <h3 className="spec-label !text-[10px]">Accessories</h3>
+          </header>
+          <ul className="flex flex-col px-1 py-1">
+            {mountedAccessories.map((a) => (
+              <li
+                key={a.id}
+                className="flex items-center gap-2 rounded-md px-2 py-1"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] leading-tight">
+                    {a.product.name}
+                  </span>
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">
+                    {MOUNT_POINT_LABELS[a.mountPoint]}
+                  </span>
+                </span>
+                <span className="w-14 shrink-0 text-right font-mono text-[11px] text-muted">
+                  {a.product.weightGrams != null
+                    ? formatWeight(a.product.weightGrams)
+                    : "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {bags.length === 0 ? (
         <p className="rounded-lg border border-dashed border-line-strong px-3 py-4 text-center text-xs text-muted">
           Mount bags on the bike to start packing.

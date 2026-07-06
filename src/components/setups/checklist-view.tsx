@@ -45,11 +45,13 @@ export function ChecklistView({ detail }: { detail: SetupDetail }) {
   }
 
   const sections: { bagId: number | null; title: string; subtitle?: string }[] = [
-    ...bags.map((b) => ({
-      bagId: b.id as number | null,
-      title: b.product.name,
-      subtitle: MOUNT_POINT_LABELS[b.mountPoint],
-    })),
+    ...bags
+      .filter((b) => b.product.category === "bag")
+      .map((b) => ({
+        bagId: b.id as number | null,
+        title: b.product.name,
+        subtitle: MOUNT_POINT_LABELS[b.mountPoint],
+      })),
     { bagId: null, title: "On bike / on body" },
   ];
 
