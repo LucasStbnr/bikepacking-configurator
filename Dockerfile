@@ -3,7 +3,6 @@
 # ---- deps: install node_modules (glibc image so better-sqlite3 uses prebuilt binaries)
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-RUN corepack enable
 COPY package.json package-lock.json ./
 RUN npm ci
 
