@@ -389,19 +389,18 @@ function BagShape({ zone, g }: { zone: DiagramZone; g: BikeGeometry }) {
 function BagLabel({
   zone,
   g,
-  name,
-  weightGrams,
+  items,
 }: {
   zone: DiagramZone;
   g: BikeGeometry;
-  name: string;
-  weightGrams: number | null;
+  items: { name: string; weightGrams: number | null }[];
 }) {
   const layout = zoneLayouts(g)[zone];
   const [ax, ay] = layout.anchor;
   const [lx, ly] = layout.label;
   const end = layout.labelAlign;
   const bendX = end === "start" ? lx - 8 : lx + 8;
+  const lineH = 15;
   return (
     <g>
       <circle cx={ax} cy={ay} r={2.5} fill={BLUEPRINT} />
@@ -412,20 +411,30 @@ function BagLabel({
         fill="none"
         opacity={0.6}
       />
-      <text x={lx} y={ly} textAnchor={end} fill={INK} style={{ font: "500 12.5px var(--font-sans)" }}>
-        {name}
-      </text>
-      {weightGrams != null ? (
-        <text
-          x={lx}
-          y={ly + 14}
-          textAnchor={end}
-          fill={MUTED}
-          style={{ font: "400 10.5px var(--font-mono)", letterSpacing: "0.05em" }}
-        >
-          {formatWeight(weightGrams)}
-        </text>
-      ) : null}
+      {items.map((item, i) => {
+        const rowY = ly + i * lineH;
+        return (
+          <g key={`${item.name}-${i}`}>
+            <text
+              x={lx}
+              y={rowY}
+              textAnchor={end}
+              fill={INK}
+              style={{ font: "500 12.5px var(--font-sans)" }}
+            >
+              {item.name}
+              {item.weightGrams != null ? (
+                <tspan
+                  fill={MUTED}
+                  style={{ font: "400 10.5px var(--font-mono)", letterSpacing: "0.05em" }}
+                >
+                  {`  ${formatWeight(item.weightGrams)}`}
+                </tspan>
+              ) : null}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }
@@ -452,7 +461,13 @@ export function BikeDiagram({
 }) {
   const g = getGeometry(bikeStyle, tireMm);
   const layouts = zoneLayouts(g);
-  const bagsByZone = new Map(bags.map((b) => [b.mountPoint as DiagramZone, b]));
+  const byZone = new Map<DiagramZone, BagWithProduct[]>();
+  for (const b of bags) {
+    const zone = b.mountPoint as DiagramZone;
+    const list = byZone.get(zone);
+    if (list) list.push(b);
+    else byZone.set(zone, [b]);
+  }
   const interactive = Boolean(onZoneSelect);
 
   return (
@@ -460,7 +475,7 @@ export function BikeDiagram({
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       className={className}
       role="img"
-      aria-label={`${bikeStyle} bike diagram with ${bags.length} mounted bag${bags.length === 1 ? "" : "s"}`}
+      aria-label={`${bikeStyle} bike diagram with ${bags.length} mounted item${bags.length === 1 ? "" : "s"}`}
     >
       {/* ground */}
       <line
@@ -482,10 +497,12 @@ export function BikeDiagram({
       <Cockpit g={g} />
       <DimensionLine g={g} label={bikeStyle.toUpperCase()} />
 
-      {/* mounted bags + labels */}
+      {/* mounted bags + accessories + labels */}
       {ZONES.map((zone) => {
-        const bag = bagsByZone.get(zone);
-        if (!bag) return null;
+        const mounted = byZone.get(zone);
+        if (!mounted || mounted.length === 0) return null;
+        const hasBag = mounted.some((m) => m.product.category === "bag");
+        const [cx, cy] = layouts[zone].anchor;
         return (
           <g
             key={zone}
@@ -494,9 +511,43 @@ export function BikeDiagram({
             opacity={selectedZone && selectedZone !== zone ? 0.45 : 1}
             style={{ transition: "opacity 150ms" }}
           >
-            <BagShape zone={zone} g={g} />
+            {hasBag ? (
+              <BagShape zone={zone} g={g} />
+            ) : (
+              // accessories only — a compact marker instead of a bag silhouette
+              <g>
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={11}
+                  fill={BAG_FILL}
+                  stroke={INK}
+                  strokeWidth={2.5}
+                />
+                {mounted.length > 1 ? (
+                  <text
+                    x={cx}
+                    y={cy + 3.5}
+                    textAnchor="middle"
+                    fill={INK}
+                    style={{ font: "600 10px var(--font-mono)" }}
+                  >
+                    {mounted.length}
+                  </text>
+                ) : (
+                  <circle cx={cx} cy={cy} r={3} fill={ACCENT} />
+                )}
+              </g>
+            )}
             {labels ? (
-              <BagLabel zone={zone} g={g} name={bag.product.name} weightGrams={bag.product.weightGrams} />
+              <BagLabel
+                zone={zone}
+                g={g}
+                items={mounted.map((m) => ({
+                  name: m.product.name,
+                  weightGrams: m.product.weightGrams,
+                }))}
+              />
             ) : null}
           </g>
         );
@@ -504,7 +555,7 @@ export function BikeDiagram({
 
       {/* empty zone markers */}
       {interactive
-        ? ZONES.filter((z) => !bagsByZone.has(z)).map((zone) => {
+        ? ZONES.filter((z) => !byZone.has(z)).map((zone) => {
             const [cx, cy] = layouts[zone].anchor;
             const selected = selectedZone === zone;
             return (

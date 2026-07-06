@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/auth";
 import {
   BIKE_STYLES,
   MOUNT_POINTS,
+  products,
   setupBags,
   setupItems,
   setups,
@@ -65,11 +66,38 @@ export async function deleteSetup(id: number) {
 export async function mountBag(setupId: number, productId: number, mountPoint: MountPoint) {
   await requireAuth();
   if (!MOUNT_POINTS.includes(mountPoint)) throw new Error("Invalid mount point");
-  if (mountPoint !== "cargo") {
-    await db
-      .delete(setupBags)
-      .where(and(eq(setupBags.setupId, setupId), eq(setupBags.mountPoint, mountPoint)));
+
+  const [product] = await db
+    .select({ category: products.category })
+    .from(products)
+    .where(eq(products.id, productId));
+  if (!product) throw new Error("Product not found");
+
+  // A mount point holds at most one bag, but any number of accessories can
+  // stack on it. Mounting a bag therefore replaces any bag already there
+  // (except on "cargo", which is unlimited); accessories always just add.
+  if (product.category === "bag" && mountPoint !== "cargo") {
+    const existing = await db
+      .select({ id: setupBags.id })
+      .from(setupBags)
+      .innerJoin(products, eq(setupBags.productId, products.id))
+      .where(
+        and(
+          eq(setupBags.setupId, setupId),
+          eq(setupBags.mountPoint, mountPoint),
+          eq(products.category, "bag"),
+        ),
+      );
+    if (existing.length > 0) {
+      await db.delete(setupBags).where(
+        inArray(
+          setupBags.id,
+          existing.map((row) => row.id),
+        ),
+      );
+    }
   }
+
   await db.insert(setupBags).values({ setupId, productId, mountPoint });
   await touch(setupId);
   revalidatePath(`/setups/${setupId}`, "layout");

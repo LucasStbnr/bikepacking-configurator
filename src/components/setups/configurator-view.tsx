@@ -69,7 +69,9 @@ export function ConfiguratorView({
   );
 
   const layouts = zoneLayouts(getGeometry(style, wheels?.tireWidthMm));
-  const openBag = openZone ? bags.find((b) => b.mountPoint === openZone) : undefined;
+  const openBags = openZone ? bags.filter((b) => b.mountPoint === openZone) : [];
+  const mountedProductIds = new Set(openBags.map((b) => b.productId));
+  const hasBagMounted = openBags.some((b) => b.product.category === "bag");
   const compatibleBags = useMemo(
     () =>
       openZone
@@ -96,18 +98,17 @@ export function ConfiguratorView({
 
   function pickBag(product: Product) {
     if (!openZone) return;
+    // Only one bag per mount point; accessories can stack freely.
+    if (product.category === "bag" && hasBagMounted) return;
     const zone = openZone;
-    setOpenZone(null);
+    if (product.category === "bag") setOpenZone(null);
     startTransition(() => mountBag(setup.id, product.id, zone));
     track("bag_mounted", { mount_point: zone, product: product.name });
   }
 
-  function removeBag() {
-    if (!openBag) return;
-    const bagId = openBag.id;
-    setOpenZone(null);
+  function removeBag(bagId: number, mountPoint: string) {
     startTransition(() => unmountBag(setup.id, bagId));
-    track("bag_removed", { mount_point: openBag.mountPoint });
+    track("bag_removed", { mount_point: mountPoint });
   }
 
   function duplicate() {
@@ -307,22 +308,40 @@ export function ConfiguratorView({
                   <p className="spec-label px-2 pb-1.5 pt-1">
                     {MOUNT_POINT_LABELS[openZone]}
                   </p>
-                  {openBag ? (
-                    <div className="mb-1 flex items-center justify-between gap-2 rounded-md bg-accent-soft/60 px-2 py-1.5">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{openBag.product.name}</p>
-                        <p className="font-mono text-[10px] text-muted">
-                          {openBag.product.weightGrams != null
-                            ? formatWeight(openBag.product.weightGrams)
-                            : "—"}
-                          {openBag.product.volumeLiters != null
-                            ? ` · ${formatVolume(openBag.product.volumeLiters)}`
-                            : ""}
-                        </p>
-                      </div>
-                      <Button variant="danger" size="sm" onClick={removeBag}>
-                        Remove
-                      </Button>
+                  {openBags.length > 0 ? (
+                    <div className="mb-1 flex flex-col gap-1">
+                      {openBags.map((b) => (
+                        <div
+                          key={b.id}
+                          className="flex items-center justify-between gap-2 rounded-md bg-accent-soft/60 px-2 py-1.5"
+                        >
+                          <div className="min-w-0">
+                            <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                              {b.product.name}
+                              {b.product.category === "accessory" ? (
+                                <span className="spec-label shrink-0 !text-[8px] text-muted">
+                                  Accessory
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="font-mono text-[10px] text-muted">
+                              {b.product.weightGrams != null
+                                ? formatWeight(b.product.weightGrams)
+                                : "—"}
+                              {b.product.volumeLiters != null
+                                ? ` · ${formatVolume(b.product.volumeLiters)}`
+                                : ""}
+                            </p>
+                          </div>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => removeBag(b.id, b.mountPoint)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   ) : null}
                   <div className="max-h-64 overflow-y-auto">
@@ -336,20 +355,40 @@ export function ConfiguratorView({
                       </p>
                     ) : null}
                     {compatibleBags
-                      .filter((p) => p.id !== openBag?.productId)
-                      .map((p) => (
-                        <BagOption key={p.id} product={p} onPick={() => pickBag(p)} />
-                      ))}
-                    {otherBags.length > 0 ? (
+                      .filter((p) => !mountedProductIds.has(p.id))
+                      .map((p) => {
+                        const blocked =
+                          p.category === "bag" && hasBagMounted;
+                        return (
+                          <BagOption
+                            key={p.id}
+                            product={p}
+                            onPick={() => pickBag(p)}
+                            dim={blocked}
+                            disabled={blocked}
+                          />
+                        );
+                      })}
+                    {otherBags.filter((p) => !mountedProductIds.has(p.id)).length > 0 ? (
                       <>
                         <p className="spec-label px-2 pb-1 pt-2 !text-[9px]">
                           Not marked for this spot
                         </p>
                         {otherBags
-                          .filter((p) => p.id !== openBag?.productId)
-                          .map((p) => (
-                            <BagOption key={p.id} product={p} onPick={() => pickBag(p)} dim />
-                          ))}
+                          .filter((p) => !mountedProductIds.has(p.id))
+                          .map((p) => {
+                            const blocked =
+                              p.category === "bag" && hasBagMounted;
+                            return (
+                              <BagOption
+                                key={p.id}
+                                product={p}
+                                onPick={() => pickBag(p)}
+                                dim
+                                disabled={blocked}
+                              />
+                            );
+                          })}
                       </>
                     ) : null}
                   </div>
@@ -371,18 +410,25 @@ function BagOption({
   product,
   onPick,
   dim,
+  disabled,
 }: {
   product: Product;
   onPick: () => void;
   dim?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onPick}
+      disabled={disabled}
+      title={disabled ? "A bag is already mounted here — remove it first" : undefined}
       className={cn(
-        "flex w-full cursor-pointer items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-line/50",
-        dim && "opacity-60",
+        "flex w-full items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-left transition-colors",
+        disabled
+          ? "cursor-not-allowed opacity-40"
+          : "cursor-pointer hover:bg-line/50",
+        dim && !disabled && "opacity-60",
       )}
     >
       <span className="min-w-0">
