@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Packrig — bikepacking setup builder
 
-## Getting Started
+Configure your bikepacking rig: pick a bike, mount bags on an interactive diagram, pack your gear, compare setups by weight/volume/price, and run a packing checklist before you leave.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, React 19, TypeScript) — Server Actions for all mutations
+- **Tailwind CSS v4** with a custom light "spec-sheet" design system
+- **SQLite + Drizzle ORM** (`better-sqlite3`) — single-file DB, migrations run automatically at boot
+- Dynamic OG images (`next/og`), sitemap/robots, Umami analytics
+
+## Development
 
 ```bash
+npm install
+npm run db:seed   # optional demo data
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Data (SQLite DB + uploaded images) lives in `./data/` (override with `DATA_DIR`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Useful scripts:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run db:generate` — generate a new Drizzle migration after editing `src/db/schema.ts`
+- `npm run db:seed` — seed demo products and a demo setup (no-ops if products exist)
 
-## Learn More
+## Deploying on Coolify
 
-To learn more about Next.js, take a look at the following resources:
+One single app resource — **no separate database instance needed** (SQLite):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Create an **Application** from this repo, build pack **Dockerfile**.
+2. Add a **persistent volume** mounted at **`/app/data`** (holds the SQLite DB and uploaded images).
+3. Set the environment variable **`SITE_URL`** to your public URL (e.g. `https://packrig.example.com`) — used for canonical URLs, OG tags and the sitemap.
+4. Deploy. Migrations run automatically on boot.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Structure
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/                 pages (setups, configurator, checklist, compare, gear library)
+  components/bike/     SVG bike diagram (4 styles, mount zones, geometry)
+  components/setups/   configurator, gear panel, totals, checklist, compare
+  components/products/ gear library CRUD
+  actions/             Server Actions (products, setups, checklist)
+  db/                  Drizzle schema, client (auto-migrate), queries
+  lib/                 totals, formatting, analytics, OG helpers
+drizzle/               SQL migrations
+```

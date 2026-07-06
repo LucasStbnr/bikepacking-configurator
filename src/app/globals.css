@@ -1,26 +1,92 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Paper & ink — light technical spec-sheet palette */
+  --background: #f6f5f1;
+  --surface: #ffffff;
+  --surface-raised: #fdfdfc;
+  --ink: #1a1a17;
+  --ink-secondary: #4c4a44;
+  --muted: #807d74;
+  --faint: #b3b0a6;
+  --line: #e5e3db;
+  --line-strong: #d4d1c6;
+
+  /* Accent — expedition orange, used sparingly */
+  --accent: #e8500b;
+  --accent-hover: #cf4406;
+  --accent-soft: #fdeee4;
+
+  /* Blueprint blue — diagram dimension lines & technical details */
+  --blueprint: #3d6ba3;
+  --blueprint-soft: #e8eef6;
+
+  --success: #3d7a4e;
+  --danger: #c03e2d;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-blueprint: var(--blueprint);
+  --color-blueprint-soft: var(--blueprint-soft);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-space-grotesk), var(--font-geist-sans), sans-serif;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv05";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+/* Micro-label: uppercase mono captions used across the spec-sheet UI */
+.spec-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Hairline dotted leaders between a label and its value (spec rows) */
+.spec-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.spec-row::before {
+  content: "";
+  order: 2;
+  flex: 1;
+  border-bottom: 1px dotted var(--line-strong);
+  transform: translateY(-0.2em);
+}
+.spec-row > :first-child {
+  order: 1;
+}
+.spec-row > :last-child {
+  order: 3;
 }
