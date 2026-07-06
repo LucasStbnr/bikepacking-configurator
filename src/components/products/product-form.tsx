@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { createProduct, deleteProduct, updateProduct } from "@/actions/products";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { TagInput } from "@/components/ui/tag-input";
 import {
   MOUNT_POINTS,
   MOUNT_POINT_LABELS,
@@ -23,12 +24,16 @@ const CATEGORY_LABELS: Record<ProductCategory, string> = {
 
 export function ProductForm({
   product,
+  suggestions = [],
+  defaultCategory = "gear",
   onDone,
 }: {
   product?: Product;
+  suggestions?: string[];
+  defaultCategory?: ProductCategory;
   onDone: () => void;
 }) {
-  const [category, setCategory] = useState<ProductCategory>(product?.category ?? "gear");
+  const [category, setCategory] = useState<ProductCategory>(product?.category ?? defaultCategory);
   const [pending, startTransition] = useTransition();
   const isBagLike = category === "bag" || category === "accessory";
 
@@ -161,6 +166,9 @@ export function ProductForm({
       </Field>
       <Field label="Image URL">
         <Input name="imageUrl" type="url" defaultValue={product?.imageUrl ?? ""} placeholder="https://…/photo.jpg" />
+      </Field>
+      <Field label="Tags" hint="Enter or comma to add.">
+        <TagInput defaultTags={product?.tags ?? []} suggestions={suggestions} />
       </Field>
       <Field label="Notes">
         <Textarea name="notes" defaultValue={product?.notes ?? ""} placeholder="Anything worth remembering…" />

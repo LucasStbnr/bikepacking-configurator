@@ -50,6 +50,8 @@ export const products = sqliteTable("products", {
   mountPoints: text("mount_points", { mode: "json" }).$type<MountPoint[]>(),
   // wheels only: tyre section width in mm (e.g. 28 road, 35 gravel, 60 MTB)
   tireWidthMm: integer("tire_width_mm"),
+  // free-form, lowercase tags for search & filtering
+  tags: text("tags", { mode: "json" }).$type<string[]>(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

@@ -8,6 +8,8 @@ import { MOUNT_POINT_LABELS, type Product } from "@/db/schema";
 import type { BagWithProduct, ItemWithProduct } from "@/db/queries";
 import { track } from "@/lib/analytics";
 import { formatWeight } from "@/lib/format";
+import { allTags, matchesQuery } from "@/lib/tags";
+import { cn } from "@/lib/utils";
 
 export function GearPanel({
   setupId,
@@ -88,8 +90,16 @@ export function GearPanel({
 
       {mountedAccessories.length > 0 ? (
         <section className="rounded-lg border border-line bg-surface">
-          <header className="border-b border-line px-3 py-2">
+          <header className="flex items-baseline justify-between gap-2 border-b border-line px-3 py-2">
             <h3 className="spec-label !text-[10px]">Accessories</h3>
+            <span className="shrink-0 font-mono text-[11px] text-muted">
+              {formatWeight(
+                mountedAccessories.reduce(
+                  (sum, a) => sum + (a.product.weightGrams ?? 0),
+                  0,
+                ),
+              )}
+            </span>
           </header>
           <ul className="flex flex-col px-1 py-1">
             {mountedAccessories.map((a) => (
@@ -204,17 +214,25 @@ function AddGearButton({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeTags, setActiveTags] = useState<string[]>([]);
   const [, startTransition] = useTransition();
 
+  const tags = useMemo(() => allTags(gearProducts), [gearProducts]);
+
+  function toggleTag(tag: string) {
+    setActiveTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  }
+
   const filtered = gearProducts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(query.toLowerCase()) ||
-      (p.brand ?? "").toLowerCase().includes(query.toLowerCase()),
+    (p) => matchesQuery(p, query) && activeTags.every((t) => (p.tags ?? []).includes(t)),
   );
 
   function pick(product: Product) {
     setOpen(false);
     setQuery("");
+    setActiveTags([]);
     startTransition(() => addItem(setupId, product.id, bagId));
     track("item_added", { product: product.name });
   }
@@ -237,6 +255,28 @@ function AddGearButton({
           placeholder="Search gear…"
           className="mb-1.5 h-8 text-[13px]"
         />
+        {tags.length > 0 ? (
+          <div className="mb-1.5 flex max-h-16 flex-wrap gap-1 overflow-y-auto">
+            {tags.map((tag) => {
+              const active = activeTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={cn(
+                    "cursor-pointer rounded-full border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] transition-colors",
+                    active
+                      ? "border-accent bg-accent/10 text-accent-hover"
+                      : "border-line text-muted hover:border-line-strong hover:text-ink",
+                  )}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
         <div className="max-h-56 overflow-y-auto">
           {filtered.length === 0 ? (
             <p className="px-2 py-3 text-xs text-muted">No matching gear in the library.</p>

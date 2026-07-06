@@ -15,6 +15,13 @@
       "when": 1783339253198,
       "tag": "0001_wheels",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783362181035,
+      "tag": "0002_lying_silvermane",
+      "breakpoints": true
     }
   ]
 }

@@ -36,6 +36,15 @@ function parseProductForm(formData: FormData) {
     .map(String)
     .filter((m): m is MountPoint => (MOUNT_POINTS as readonly string[]).includes(m));
 
+  const tags = Array.from(
+    new Set(
+      formData
+        .getAll("tags")
+        .map((t) => String(t).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+
   const price = num("price");
   const tireWidth = num("tireWidthMm");
   return {
@@ -52,6 +61,7 @@ function parseProductForm(formData: FormData) {
     mountPoints: category === "bag" || category === "accessory" ? mountPoints : null,
     tireWidthMm:
       category === "wheels" && tireWidth !== null ? Math.round(tireWidth) : null,
+    tags: tags.length ? tags : null,
   };
 }
 

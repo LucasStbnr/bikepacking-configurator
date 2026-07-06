@@ -4,10 +4,12 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
+import { Input } from "@/components/ui/field";
 import { CategoryIcon } from "@/components/products/category-icon";
 import { ProductForm } from "@/components/products/product-form";
 import type { Product, ProductCategory } from "@/db/schema";
 import { formatPrice, formatVolume, formatWeight } from "@/lib/format";
+import { allTags, matchesQuery } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 
 const FILTERS: { value: ProductCategory | "all"; label: string }[] = [
@@ -21,12 +23,28 @@ const FILTERS: { value: ProductCategory | "all"; label: string }[] = [
 
 export function ProductsView({ products }: { products: Product[] }) {
   const [filter, setFilter] = useState<ProductCategory | "all">("all");
+  const [query, setQuery] = useState("");
+  const [activeTags, setActiveTags] = useState<string[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
 
+  const tags = useMemo(() => allTags(products), [products]);
+
+  function toggleTag(tag: string) {
+    setActiveTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  }
+
   const visible = useMemo(
-    () => (filter === "all" ? products : products.filter((p) => p.category === filter)),
-    [products, filter],
+    () =>
+      products.filter(
+        (p) =>
+          (filter === "all" || p.category === filter) &&
+          matchesQuery(p, query) &&
+          activeTags.every((t) => (p.tags ?? []).includes(t)),
+      ),
+    [products, filter, query, activeTags],
   );
 
   return (
@@ -38,9 +56,18 @@ export function ProductsView({ products }: { products: Product[] }) {
             {products.length} item{products.length === 1 ? "" : "s"} — everything you can put on a bike.
           </p>
         </div>
-        <Button variant="primary" onClick={() => setCreating(true)}>
-          + Add product
-        </Button>
+        <div className="flex items-center gap-3">
+          <Input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search name, brand, tag…"
+            className="h-9 w-56"
+          />
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            + Add product
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-1 border-b border-line">
@@ -60,6 +87,29 @@ export function ProductsView({ products }: { products: Product[] }) {
           </button>
         ))}
       </div>
+
+      {tags.length > 0 ? (
+        <div className="-mt-2 flex flex-wrap gap-1.5">
+          {tags.map((tag) => {
+            const active = activeTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleTag(tag)}
+                className={cn(
+                  "cursor-pointer rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] transition-colors",
+                  active
+                    ? "border-accent bg-accent/10 text-accent-hover"
+                    : "border-line text-muted hover:border-line-strong hover:text-ink",
+                )}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {visible.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line-strong py-16 text-center">
@@ -100,6 +150,18 @@ export function ProductsView({ products }: { products: Product[] }) {
                     <h2 className="mt-0.5 font-medium leading-snug text-ink group-hover:text-accent-hover">
                       {product.name}
                     </h2>
+                    {product.tags && product.tags.length > 0 ? (
+                      <ul className="mt-1.5 flex flex-wrap gap-1">
+                        {product.tags.map((tag) => (
+                          <li
+                            key={tag}
+                            className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.08em] text-muted"
+                          >
+                            {tag}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                   <dl className="flex flex-col gap-1 text-xs">
                     <div className="spec-row">
@@ -134,7 +196,11 @@ export function ProductsView({ products }: { products: Product[] }) {
         title="Add product"
         description="A new entry in your gear library."
       >
-        <ProductForm onDone={() => setCreating(false)} />
+        <ProductForm
+          suggestions={tags}
+          defaultCategory={filter === "all" ? undefined : filter}
+          onDone={() => setCreating(false)}
+        />
       </Drawer>
 
       <Drawer
@@ -144,7 +210,12 @@ export function ProductsView({ products }: { products: Product[] }) {
         description={editing?.brand ?? undefined}
       >
         {editing ? (
-          <ProductForm key={editing.id} product={editing} onDone={() => setEditing(null)} />
+          <ProductForm
+            key={editing.id}
+            product={editing}
+            suggestions={tags}
+            onDone={() => setEditing(null)}
+          />
         ) : null}
       </Drawer>
     </div>
