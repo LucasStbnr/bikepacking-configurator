@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { deleteSetup, mountBag, unmountBag, updateSetup } from "@/actions/setups";
+import { deleteSetup, duplicateSetup, mountBag, unmountBag, updateSetup } from "@/actions/setups";
 import { BikeDiagram } from "@/components/bike/bike-diagram";
 import {
   getGeometry,
@@ -110,9 +110,14 @@ export function ConfiguratorView({
     track("bag_removed", { mount_point: openBag.mountPoint });
   }
 
+  function duplicate() {
+    track(“setup_duplicated”);
+    startTransition(() => duplicateSetup(setup.id));
+  }
+
   function remove() {
     if (!window.confirm(`Delete “${setup.name}” and its packing list?`)) return;
-    track("setup_deleted");
+    track(“setup_deleted”);
     startTransition(() => deleteSetup(setup.id));
   }
 
@@ -151,6 +156,9 @@ export function ConfiguratorView({
           />
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={duplicate}>
+            Duplicate
+          </Button>
           <Button variant="danger" size="sm" onClick={remove}>
             Delete
           </Button>

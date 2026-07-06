@@ -116,3 +116,47 @@ export async function setItemQuantity(setupId: number, itemId: number, quantity:
   await touch(setupId);
   revalidatePath(`/setups/${setupId}`, "layout");
 }
+
+export async function duplicateSetup(id: number) {
+  await requireAuth();
+
+  const [original] = await db.select().from(setups).where(eq(setups.id, id));
+  if (!original) throw new Error("Setup not found");
+
+  const oldBags = await db.select().from(setupBags).where(eq(setupBags.setupId, id));
+  const oldItems = await db.select().from(setupItems).where(eq(setupItems.setupId, id));
+
+  const [newSetup] = await db
+    .insert(setups)
+    .values({
+      name: `${original.name} (copy)`,
+      description: original.description,
+      bikeProductId: original.bikeProductId,
+      wheelProductId: original.wheelProductId,
+      bikeStyle: original.bikeStyle,
+      bikeColor: original.bikeColor,
+    })
+    .returning();
+
+  const bagIdMap = new Map<number, number>();
+  for (const bag of oldBags) {
+    const [newBag] = await db
+      .insert(setupBags)
+      .values({ setupId: newSetup.id, productId: bag.productId, mountPoint: bag.mountPoint })
+      .returning();
+    bagIdMap.set(bag.id, newBag.id);
+  }
+
+  for (const item of oldItems) {
+    await db.insert(setupItems).values({
+      setupId: newSetup.id,
+      productId: item.productId,
+      bagId: item.bagId ? (bagIdMap.get(item.bagId) ?? null) : null,
+      quantity: item.quantity,
+      checked: false,
+    });
+  }
+
+  revalidatePath("/");
+  redirect(`/setups/${newSetup.id}`);
+}
