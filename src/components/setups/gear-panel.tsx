@@ -42,6 +42,8 @@ export function GearPanel({
     bagId: number | null;
     title: string;
     subtitle?: string;
+    /** The bag's own weight, counted into the section total alongside its contents. */
+    bagWeightGrams?: number;
     /** Worn bags have no diagram popover, so they get a remove button here. */
     removable?: boolean;
   }[] = [
@@ -49,6 +51,7 @@ export function GearPanel({
       bagId: b.id as number | null,
       title: b.product.name,
       subtitle: MOUNT_POINT_LABELS[b.mountPoint],
+      bagWeightGrams: b.product.weightGrams ?? 0,
       removable: b.mountPoint === "cyclist",
     })),
     { bagId: null, title: "On bike / on body", subtitle: "bottles, GPS, worn kit…" },
@@ -64,10 +67,12 @@ export function GearPanel({
       <h2 className="spec-label">Packing list</h2>
       {sections.map((section) => {
         const sectionItems = items.filter((i) => i.bagId === section.bagId);
-        const weight = sectionItems.reduce(
-          (sum, i) => sum + (i.product.weightGrams ?? 0) * i.quantity,
-          0,
-        );
+        const weight =
+          (section.bagWeightGrams ?? 0) +
+          sectionItems.reduce(
+            (sum, i) => sum + (i.product.weightGrams ?? 0) * i.quantity,
+            0,
+          );
         return (
           <section
             key={section.bagId ?? "loose"}
