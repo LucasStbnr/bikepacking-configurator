@@ -71,7 +71,11 @@ export function ConfiguratorView({
 
   const layouts = zoneLayouts(getGeometry(style, wheels?.tireWidthMm));
   const openBags = openZone ? bags.filter((b) => b.mountPoint === openZone) : [];
-  const mountedProductIds = new Set(openBags.map((b) => b.productId));
+  // Hide already-mounted bags from the pick list (re-mounting would just
+  // replace itself); accessories stay pickable so several copies can stack.
+  const mountedBagProductIds = new Set(
+    openBags.filter((b) => b.product.category === "bag").map((b) => b.productId),
+  );
   const multiBagZone =
     openZone != null && (MULTI_BAG_MOUNT_POINTS as readonly string[]).includes(openZone);
   const bagBlocked =
@@ -359,7 +363,7 @@ export function ConfiguratorView({
                       </p>
                     ) : null}
                     {compatibleBags
-                      .filter((p) => !mountedProductIds.has(p.id))
+                      .filter((p) => !mountedBagProductIds.has(p.id))
                       .map((p) => {
                         const blocked =
                           p.category === "bag" && bagBlocked;
@@ -373,13 +377,13 @@ export function ConfiguratorView({
                           />
                         );
                       })}
-                    {otherBags.filter((p) => !mountedProductIds.has(p.id)).length > 0 ? (
+                    {otherBags.filter((p) => !mountedBagProductIds.has(p.id)).length > 0 ? (
                       <>
                         <p className="spec-label px-2 pb-1 pt-2 !text-[9px]">
                           Not marked for this spot
                         </p>
                         {otherBags
-                          .filter((p) => !mountedProductIds.has(p.id))
+                          .filter((p) => !mountedBagProductIds.has(p.id))
                           .map((p) => {
                             const blocked =
                               p.category === "bag" && bagBlocked;
