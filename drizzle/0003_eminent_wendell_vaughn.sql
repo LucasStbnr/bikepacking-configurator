@@ -1,0 +1,1 @@
+ALTER TABLE `setup_bags` ADD `checked` integer DEFAULT false NOT NULL;

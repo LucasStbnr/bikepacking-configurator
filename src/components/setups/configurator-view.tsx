@@ -18,6 +18,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import {
   BIKE_STYLES,
   MOUNT_POINT_LABELS,
+  MULTI_BAG_MOUNT_POINTS,
   type BikeStyle,
   type Product,
 } from "@/db/schema";
@@ -71,7 +72,10 @@ export function ConfiguratorView({
   const layouts = zoneLayouts(getGeometry(style, wheels?.tireWidthMm));
   const openBags = openZone ? bags.filter((b) => b.mountPoint === openZone) : [];
   const mountedProductIds = new Set(openBags.map((b) => b.productId));
-  const hasBagMounted = openBags.some((b) => b.product.category === "bag");
+  const multiBagZone =
+    openZone != null && (MULTI_BAG_MOUNT_POINTS as readonly string[]).includes(openZone);
+  const bagBlocked =
+    !multiBagZone && openBags.some((b) => b.product.category === "bag");
   const compatibleBags = useMemo(
     () =>
       openZone
@@ -98,8 +102,8 @@ export function ConfiguratorView({
 
   function pickBag(product: Product) {
     if (!openZone) return;
-    // Only one bag per mount point; accessories can stack freely.
-    if (product.category === "bag" && hasBagMounted) return;
+    // One bag per mount point (except multi-bag zones); accessories stack freely.
+    if (product.category === "bag" && bagBlocked) return;
     const zone = openZone;
     if (product.category === "bag") setOpenZone(null);
     startTransition(() => mountBag(setup.id, product.id, zone));
@@ -358,7 +362,7 @@ export function ConfiguratorView({
                       .filter((p) => !mountedProductIds.has(p.id))
                       .map((p) => {
                         const blocked =
-                          p.category === "bag" && hasBagMounted;
+                          p.category === "bag" && bagBlocked;
                         return (
                           <BagOption
                             key={p.id}
@@ -378,7 +382,7 @@ export function ConfiguratorView({
                           .filter((p) => !mountedProductIds.has(p.id))
                           .map((p) => {
                             const blocked =
-                              p.category === "bag" && hasBagMounted;
+                              p.category === "bag" && bagBlocked;
                             return (
                               <BagOption
                                 key={p.id}

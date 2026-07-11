@@ -192,8 +192,8 @@ export type ZoneLayout = {
   labelAlign: "start" | "end";
 };
 
-/** On-bike zones (cargo is handled outside the diagram). */
-export type DiagramZone = Exclude<MountPoint, "cargo">;
+/** On-bike zones (cargo and cyclist are handled outside the diagram). */
+export type DiagramZone = Exclude<MountPoint, "cargo" | "cyclist">;
 
 export function zoneLayouts(g: BikeGeometry): Record<DiagramZone, ZoneLayout> {
   const forkMid = mid(g.headBottom, g.frontAxle, 0.5);

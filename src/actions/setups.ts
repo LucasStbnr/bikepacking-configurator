@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/auth";
 import {
   BIKE_STYLES,
   MOUNT_POINTS,
+  MULTI_BAG_MOUNT_POINTS,
   products,
   setupBags,
   setupItems,
@@ -75,8 +76,12 @@ export async function mountBag(setupId: number, productId: number, mountPoint: M
 
   // A mount point holds at most one bag, but any number of accessories can
   // stack on it. Mounting a bag therefore replaces any bag already there
-  // (except on "cargo", which is unlimited); accessories always just add.
-  if (product.category === "bag" && mountPoint !== "cargo") {
+  // (except on multi-bag zones like "cargo"/"cyclist", which are unlimited);
+  // accessories always just add.
+  if (
+    product.category === "bag" &&
+    !(MULTI_BAG_MOUNT_POINTS as readonly string[]).includes(mountPoint)
+  ) {
     const existing = await db
       .select({ id: setupBags.id })
       .from(setupBags)

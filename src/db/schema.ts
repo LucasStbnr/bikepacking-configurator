@@ -17,9 +17,17 @@ export const MOUNT_POINTS = [
   "fork_right",
   "saddle",
   "rear_rack",
+  "cyclist",
   "cargo",
 ] as const;
 export type MountPoint = (typeof MOUNT_POINTS)[number];
+
+/** Zones that hold any number of bags (everywhere else: one bag max). */
+export const MULTI_BAG_MOUNT_POINTS = [
+  "toptube",
+  "cyclist",
+  "cargo",
+] as const satisfies readonly MountPoint[];
 
 export const MOUNT_POINT_LABELS: Record<MountPoint, string> = {
   handlebar: "Handlebar",
@@ -31,6 +39,7 @@ export const MOUNT_POINT_LABELS: Record<MountPoint, string> = {
   fork_right: "Fork (right)",
   saddle: "Saddle",
   rear_rack: "Rear rack",
+  cyclist: "Worn by cyclist",
   cargo: "Cargo / other",
 } as const;
 
@@ -86,6 +95,7 @@ export const setupBags = sqliteTable("setup_bags", {
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
   mountPoint: text("mount_point").$type<MountPoint>().notNull(),
+  checked: integer("checked", { mode: "boolean" }).notNull().default(false),
 });
 
 export const setupItems = sqliteTable("setup_items", {
