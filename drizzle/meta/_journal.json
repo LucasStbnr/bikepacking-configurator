@@ -29,6 +29,13 @@
       "when": 1783364107395,
       "tag": "0003_eminent_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1783767391456,
+      "tag": "0004_share_token",
+      "breakpoints": true
     }
   ]
 }

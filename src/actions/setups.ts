@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -148,6 +149,29 @@ export async function setItemQuantity(setupId: number, itemId: number, quantity:
     .where(and(eq(setupItems.id, itemId), eq(setupItems.setupId, setupId)));
   await touch(setupId);
   revalidatePath(`/setups/${setupId}`, "layout");
+}
+
+/** Turn on public sharing — generates the share token if there is none yet. */
+export async function enableSharing(id: number): Promise<string> {
+  await requireAuth();
+  const [setup] = await db
+    .select({ shareToken: setups.shareToken })
+    .from(setups)
+    .where(eq(setups.id, id));
+  if (!setup) throw new Error("Setup not found");
+  if (setup.shareToken) return setup.shareToken;
+
+  const token = randomBytes(16).toString("base64url");
+  await db.update(setups).set({ shareToken: token }).where(eq(setups.id, id));
+  revalidatePath(`/setups/${id}`, "layout");
+  return token;
+}
+
+/** Turn off public sharing — the old link stops working immediately. */
+export async function disableSharing(id: number) {
+  await requireAuth();
+  await db.update(setups).set({ shareToken: null }).where(eq(setups.id, id));
+  revalidatePath(`/setups/${id}`, "layout");
 }
 
 export async function duplicateSetup(id: number) {

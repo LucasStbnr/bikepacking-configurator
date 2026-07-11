@@ -55,5 +55,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/health).*)"],
+  // "share" keeps the public read-only share pages reachable without a session
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/health|share).*)"],
 };

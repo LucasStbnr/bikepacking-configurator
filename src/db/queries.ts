@@ -64,6 +64,14 @@ export async function getSetupDetail(id: number): Promise<SetupDetail | null> {
   };
 }
 
+/** Look up a setup by its public share token (null when not shared / unknown token). */
+export async function getSetupDetailByShareToken(token: string): Promise<SetupDetail | null> {
+  if (!token) return null;
+  const [setup] = await db.select().from(setups).where(eq(setups.shareToken, token));
+  if (!setup) return null;
+  return getSetupDetail(setup.id);
+}
+
 export async function getAllSetupDetails(): Promise<SetupDetail[]> {
   const all = await getSetups();
   const details = await Promise.all(all.map((s) => getSetupDetail(s.id)));

@@ -12,6 +12,7 @@ import {
   type DiagramZone,
 } from "@/components/bike/geometry";
 import { GearPanel } from "@/components/setups/gear-panel";
+import { ShareDialog } from "@/components/setups/share-dialog";
 import { TotalsBar } from "@/components/setups/totals-bar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
@@ -61,6 +62,7 @@ export function ConfiguratorView({
   const [style, setStyle] = useState<BikeStyle>(setup.bikeStyle);
   const [color, setColor] = useState(setup.bikeColor);
   const [openZone, setOpenZone] = useState<DiagramZone | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const bikes = products.filter((p) => p.category === "bike");
   const wheelsets = products.filter((p) => p.category === "wheels");
@@ -165,6 +167,25 @@ export function ConfiguratorView({
           />
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setShareOpen(true);
+              track("share_opened");
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden>
+              <path
+                d="M9.5 4.5L7 2m0 0L4.5 4.5M7 2v7.5M3 7v4.5h8V7"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Share
+          </Button>
           <Button variant="outline" size="sm" onClick={duplicate}>
             Duplicate
           </Button>
@@ -410,6 +431,13 @@ export function ConfiguratorView({
       </div>
 
       <TotalsBar totals={totals} />
+
+      <ShareDialog
+        setupId={setup.id}
+        shareToken={setup.shareToken}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+      />
     </div>
   );
 }

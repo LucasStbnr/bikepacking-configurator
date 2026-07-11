@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getSetupDetail } from "@/db/queries";
+import { getSetupDetailByShareToken } from "@/db/queries";
 import { OG_COLORS, OG_SIZE } from "@/lib/og";
 import { renderSetupOg } from "@/lib/setup-images";
 import { SITE_NAME } from "@/lib/site";
@@ -11,10 +11,10 @@ export const contentType = "image/png";
 export default async function OpengraphImage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ token: string }>;
 }) {
-  const { id } = await params;
-  const detail = await getSetupDetail(Number(id));
+  const { token } = await params;
+  const detail = await getSetupDetailByShareToken(token);
 
   if (!detail) {
     return new ImageResponse(

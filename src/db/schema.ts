@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const PRODUCT_CATEGORIES = ["bike", "wheels", "bag", "accessory", "gear"] as const;
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
@@ -66,25 +66,31 @@ export const products = sqliteTable("products", {
     .default(sql`(unixepoch())`),
 });
 
-export const setups = sqliteTable("setups", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  description: text("description"),
-  bikeProductId: integer("bike_product_id").references(() => products.id, {
-    onDelete: "set null",
-  }),
-  wheelProductId: integer("wheel_product_id").references(() => products.id, {
-    onDelete: "set null",
-  }),
-  bikeStyle: text("bike_style").$type<BikeStyle>().notNull().default("gravel"),
-  bikeColor: text("bike_color").notNull().default("#1a1a17"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+export const setups = sqliteTable(
+  "setups",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    description: text("description"),
+    bikeProductId: integer("bike_product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
+    wheelProductId: integer("wheel_product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
+    bikeStyle: text("bike_style").$type<BikeStyle>().notNull().default("gravel"),
+    bikeColor: text("bike_color").notNull().default("#1a1a17"),
+    // Unguessable token for the public read-only share page; null = not shared
+    shareToken: text("share_token"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [uniqueIndex("setups_share_token_unique").on(t.shareToken)],
+);
 
 export const setupBags = sqliteTable("setup_bags", {
   id: integer("id").primaryKey({ autoIncrement: true }),
